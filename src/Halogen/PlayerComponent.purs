@@ -38,6 +38,8 @@ instance showEvent :: Show PlaybackState where
 instance eqEvent :: Eq PlaybackState where
   eq = genericEq
 
+data Message = IsPlaying Boolean
+
 data Query p a =
     SetInstruments (Array Instrument) a
   | PlayMelody PlaybackState a             -- play | pause
@@ -56,7 +58,7 @@ type State p =
   , playable :: Maybe p              -- the playable piece of music to convert to a melody
   }
 
-component :: ∀ eff p. Playable p => p -> Array Instrument -> H.Component HH.HTML (Query p) Unit Void (Aff (au :: AUDIO | eff))
+component :: ∀ eff p. Playable p => p -> Array Instrument -> H.Component HH.HTML (Query p) Unit Message (Aff (au :: AUDIO | eff))
 component playable instruments =
   H.component
     { initialState: const (initialState playable instruments)
@@ -140,7 +142,7 @@ component playable instruments =
           -}
         ]
 
-  eval :: ∀ eff p. Playable p => (Query p) ~> H.ComponentDSL (State p) (Query p) Void (Aff (au :: AUDIO | eff))
+  eval :: ∀ eff p. Playable p => (Query p) ~> H.ComponentDSL (State p) (Query p) Message (Aff (au :: AUDIO | eff))
   eval = case _ of
 
     -- when we change the instruments (possibly im mid-melody) we need to
@@ -178,6 +180,7 @@ component playable instruments =
       if ((button == PLAYING) && (not (null state.melody)))
         then do
           -- play
+          H.raise $ IsPlaying true
           H.modify (\state -> state { playing = PLAYING})
           eval (StepMelody next)
         else do
@@ -203,6 +206,7 @@ component playable instruments =
     -- EnablePlayButton unfreezes the play button which is frozen after being
     -- pressed so as to avoid playing the melody twice simultaneously
     EnablePlayButton next -> do
+      H.raise $ IsPlaying false
       H.modify (\state -> state { playing = PAUSED})
       pure next
 
