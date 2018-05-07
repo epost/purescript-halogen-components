@@ -1,5 +1,17 @@
 module Halogen.PlayerComponent where
 
+-- | A Halogen component which acts as a generic player for any music
+-- | source that can be converted into a Melody - in other words
+-- | one that is an instance of Playable
+
+-- | When looking at the data structures, whenever we have a type variable p
+-- | then look at it as if it were defined as ∀ p. Playable p => p
+-- | It doesn't seem possible actually to define a type like this and so the
+-- | Query and State data types have been parameterised with (simply) p
+-- | but all functions that involve these types require the Playable constraint.
+
+
+
 import Prelude
 
 import Audio.SoundFont (AUDIO, Instrument, playNotes, instrumentChannels)
@@ -216,25 +228,10 @@ component playable instruments =
       H.put newState
       pure next
 
-    {-}
-      state <- H.get
-      if (state.playing == PLAYING)
-        then do
-          _ <- temporarilyFreezePlayButton
-          state <- H.get
-          H.modify (\state -> state { phraseIndex = 0, playing = PAUSED})
-          pure next
-        else do
-          H.modify (\state -> state { phraseIndex = 0, playing = PAUSED})
-          pure next
-    --}
-
     -- stop then handle a new melody when requested externally
     HandleNewPlayable playable next -> do
       state <- H.get
       newState <- stop
-      -- let
-      --  newState = state
       H.put newState { playable = Just playable, melody = [] }
       pure next
 
