@@ -19,7 +19,7 @@ import Data.String (fromCharArray)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import Halogen.PlayerComponent (component)
+import Halogen.PlayerComponent (component, Query(..))
 import Audio.SoundFont.Melody.Class (MidiRecording(..))
 import Prelude (Unit, unit, bind, map, pure, (<>), ($), (<<<))
 import Partial.Unsafe (unsafePartial)
@@ -93,4 +93,6 @@ main = HA.runHalogenAff do
     erecording = (parse <<< normalise <<< denormalise <<< toUint8Array) midiBytes
     recording = unsafePartial $ fromRight erecording
   body <- HA.awaitBody
-  runUI (component (MidiRecording recording) instruments) unit body
+  io <- runUI (component (MidiRecording recording) instruments) unit body
+  _ <- io.query $ H.action $ HandleNewPlayable (MidiRecording recording)
+  pure unit

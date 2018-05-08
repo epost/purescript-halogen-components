@@ -73,7 +73,7 @@ type State p =
 component :: ∀ eff p. Playable p => p -> Array Instrument -> H.Component HH.HTML (Query p) Unit Message (Aff (au :: AUDIO | eff))
 component playable instruments =
   H.component
-    { initialState: const (initialState playable instruments)
+    { initialState: const (initialState instruments)
     , render
     , eval
     , receiver: HE.input_ (HandleNewPlayable playable)
@@ -81,14 +81,14 @@ component playable instruments =
   where
 
   -- | the initial state of the player (with no melody to play yet)
-  initialState :: ∀ p. Playable p => p -> Array Instrument -> State p
-  initialState playable instruments =
+  initialState :: ∀ p. Playable p => Array Instrument -> State p
+  initialState instruments =
     { instruments : instruments
     , melody : []
     , playing : PAUSED
     , phraseIndex : 0
     , phraseLength : 0.0
-    , playable : Just playable
+    , playable : Nothing
     }
 
 
