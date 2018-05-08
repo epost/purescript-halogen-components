@@ -68,11 +68,11 @@ type State p =
   , playing :: PlaybackState         -- the state of the playback
   , phraseIndex :: Int               -- the current phrase being played
   , phraseLength :: Number           -- the duration of the phrase currently playing
-  , playable :: Maybe p              -- the playable piece of music to convert to a melody
+  , playable :: p                    -- the playable piece of music to convert to a melody
   }
 
 -- | here the normal Input parameter is just p (constrained to Playable)
-component :: ∀ eff p. Playable p => Maybe p -> Array Instrument -> H.Component HH.HTML (Query p) p Message (Aff (au :: AUDIO | eff))
+component :: ∀ eff p. Playable p => p -> Array Instrument -> H.Component HH.HTML (Query p) p Message (Aff (au :: AUDIO | eff))
 component playable instruments =
   H.component
     { initialState: const (initialState playable instruments)
@@ -85,7 +85,7 @@ component playable instruments =
   -- | the initial state of the player
   -- | We can choose to construct it with a Ployable and/or defer to
   -- | the receiver function later on to get hold of it
-  initialState :: ∀ p. Playable p => Maybe p -> Array Instrument -> State p
+  initialState :: ∀ p. Playable p => p -> Array Instrument -> State p
   initialState playable instruments =
     { instruments : instruments
     , melody : []
@@ -178,7 +178,6 @@ component playable instruments =
                                 , phraseLength = 0.0
                                 , playing = newPlayingState
                                 , melody = []
-                                , playable = Nothing
                                 })
       pure next
 
@@ -236,7 +235,7 @@ component playable instruments =
     HandleNewPlayable playable next -> do
       state <- H.get
       newState <- stop
-      H.put newState { playable = Just playable, melody = [] }
+      H.put newState { playable = playable, melody = [] }
       pure next
 
 
@@ -250,11 +249,8 @@ establishMelody :: ∀ m eff p.
 establishMelody = do
   state <- H.get
   let
-    melody = case state.playable of
-      Just pl ->
-          toMelody pl (instrumentChannels state.instruments)
-      _ ->
-        []
+    melody =
+      toMelody state.playable (instrumentChannels state.instruments)
   H.modify (\state -> state { melody = melody})
   pure unit
 
