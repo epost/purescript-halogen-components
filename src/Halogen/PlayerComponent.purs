@@ -50,6 +50,7 @@ instance showEvent :: Show PlaybackState where
 instance eqEvent :: Eq PlaybackState where
   eq = genericEq
 
+
 data Message = IsPlaying Boolean
 
 data Query p a =
@@ -70,25 +71,28 @@ type State p =
   , playable :: Maybe p              -- the playable piece of music to convert to a melody
   }
 
-component :: ∀ eff p. Playable p => p -> Array Instrument -> H.Component HH.HTML (Query p) Unit Message (Aff (au :: AUDIO | eff))
+-- | here the normal Input parameter is just p (constrained to Playable)
+component :: ∀ eff p. Playable p => Maybe p -> Array Instrument -> H.Component HH.HTML (Query p) p Message (Aff (au :: AUDIO | eff))
 component playable instruments =
   H.component
-    { initialState: const (initialState instruments)
+    { initialState: const (initialState playable instruments)
     , render
     , eval
-    , receiver: HE.input_ (HandleNewPlayable playable)
+    , receiver: HE.input HandleNewPlayable
     }
   where
 
-  -- | the initial state of the player (with no melody to play yet)
-  initialState :: ∀ p. Playable p => Array Instrument -> State p
-  initialState instruments =
+  -- | the initial state of the player
+  -- | We can choose to construct it with a Ployable and/or defer to
+  -- | the receiver function later on to get hold of it
+  initialState :: ∀ p. Playable p => Maybe p -> Array Instrument -> State p
+  initialState playable instruments =
     { instruments : instruments
     , melody : []
     , playing : PAUSED
     , phraseIndex : 0
     , phraseLength : 0.0
-    , playable : Nothing
+    , playable : playable
     }
 
 
